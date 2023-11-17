@@ -191,6 +191,7 @@ export default class Tabla {
       // Crear las filas para los datos actualizados y agrégalas al tbody
       this.datos.forEach((dato) => {
         const tr = document.createElement("tr");
+        tr.setAttribute("data-id", dato.id);
         this.columnas.forEach((col) => {
           const td = document.createElement("td");
           td.setAttribute("data-columna", col.value);

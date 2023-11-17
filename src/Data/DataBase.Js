@@ -1,7 +1,8 @@
-import Terrestre from '../Entities/Terrestre.js';
-import Aereo from '../Entities/Aereo.js';
-import Vehiculo from '../Entities/Vehiculo.js';
+import Futbolista from '../Entities/Futbolista.js';
+import Profesional from '../Entities/Profesional.js';
+import Persona from '../Entities/Persona.js';
 import { mostrarSpinner, ocultarSpinner } from "../Modules/Spinner.js";
+
 
 
 /*
@@ -13,7 +14,7 @@ export function VerificarDataBase() {
   mostrarSpinner(); // Muestra el spinner antes de la solicitud
 
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', 'http://localhost/Vehiculos.php', false); // false para solicitud síncrona
+  xhr.open('GET', 'http://localhost/personasFutbolitasProfesionales.php', false); // false para solicitud síncrona
   xhr.send();
 
   if (xhr.status === 200) {
@@ -40,26 +41,28 @@ export function MapearDatos() {
 
   if (data) {
     resultados = data.map((item) => {
-      if ("cantPue" in item && "cantRue" in item) {
-        return new Terrestre(
+      if ("equipo" in item && "cantidadGoles" in item) {
+        return new Futbolista(
           item.id,
-          item.modelo,
-          item.anoFab,
-          item.velMax,
-          item.cantPue,
-          item.cantRue
+          item.nombre,
+          item.apellido,
+          item.edad,
+          item.equipo,
+          item.posicion,
+          item.cantidadGoles
         );
-      } else if ("altMax" in item && "autonomia" in item) {
-        return new Aereo(
+      } else if ("facultad" in item && "añoGraduacion" in item) {
+        return new Profesional(
           item.id,
-          item.modelo,
-          item.anoFab,
-          item.velMax,
-          item.altMax,
-          item.autonomia
+          item.nombre,
+          item.apellido,
+          item.edad,
+          item.titulo,
+          item.facultad,
+          item.añoGraduacion
         );
       } else {
-        return new Vehiculo(item.id, item.nombre, item.apellido, item.edad);
+        return new Persona(item.id, item.nombre, item.apellido, item.edad);
       }
     });
   }

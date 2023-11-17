@@ -1,4 +1,6 @@
 import { mostrarSpinner, ocultarSpinner } from "./Spinner.js";
+import Profesional from '../Entities/Profesional.js';
+import Futbolista from '../Entities/Futbolista.js';
 
 export default class FormularioDinamico {
     constructor(clases, buttonText, componenteOcultar, tabla) {
@@ -75,7 +77,7 @@ export default class FormularioDinamico {
       if (this.IdEditar != null && this.IdEditar > 0) {
         mostrarSpinner();
         // Realizar la solicitud DELETE al archivo PHP
-        const response = await fetch('http://localhost/Vehiculos.php', {
+        const response = await fetch('http://localhost/personasFutbolitasProfesionales.php', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -209,7 +211,7 @@ export default class FormularioDinamico {
     }
   
     procesarAlta(datos, datosDB) {
-      mostrarSpinner(); 
+      mostrarSpinner();
     
       const objetoEnviar = {};
       for (const key in datos) {
@@ -218,35 +220,141 @@ export default class FormularioDinamico {
         }
       }
     
-      fetch('http://localhost/Vehiculos.php', {
+      const validaciones = this.validarDatos(objetoEnviar);
+      if (validaciones.length > 0) {
+        alert(`Error: ${validaciones.join(", ")}`);
+        ocultarSpinner(); // Ensure Spinner is hidden in case of validation error
+        return;
+      }
+    
+      fetch('http://localhost/personasFutbolitasProfesionales.php', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(objetoEnviar),
       })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Error al realizar la solicitud. Estado: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(responseData => {
-        datos.id = responseData.id;
-        datosDB.push(datos);
-        localStorage.setItem("misDatos", JSON.stringify(datosDB));
-        ocultarSpinner();
-        this.ocultarFormulario();
-        this._tabla.actualizarTabla(datosDB);
-      })
-      .catch(error => {
-        ocultarSpinner();
-        this.ocultarFormulario();
-        console.error(error);
-        alert("No se pudo realizar la operación.");
-      });
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Error al realizar la solicitud. Estado: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(responseData => {
+          datos.id = responseData.id;
+          datosDB.push(datos);
+          localStorage.setItem("misDatos", JSON.stringify(datosDB));
+          ocultarSpinner();
+          this.ocultarFormulario();
+          this._tabla.actualizarTabla(datosDB);
+        })
+        .catch(error => {
+          ocultarSpinner();
+          this.ocultarFormulario();
+          console.error(error);
+          alert("No se pudo realizar la operación.");
+        });
     }
     
+    
+    procesarEdicion(datos, datosDB) {
+      if (!this.IdEditar || this.IdEditar <= 0) {
+        alert("Error: ID de edición no válido.");
+        return;
+      }
+    
+      const objetoExistente = datosDB.find((dato) => dato.id === this.IdEditar);
+    
+      if (!objetoExistente) {
+        alert("Error: No se encontró el elemento a editar.");
+        return;
+      }
+    
+      const formData = new FormData(this.formulario);
+      const datosModificados = {};
+      formData.forEach((value, key) => {
+        datosModificados[key] = value;
+      });
+    
+      const validaciones = this.validarDatos(datosModificados);
+      if (validaciones.length > 0) {
+        alert(`Error: ${validaciones.join(", ")}`);
+        return;
+      }
+    
+      mostrarSpinner();
+    
+      const objetoEnviar = {
+        id: this.IdEditar,
+        ...datosModificados,
+      };
+    
+      fetch('http://localhost/personasFutbolitasProfesionales.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(objetoEnviar),
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Error al realizar la solicitud. Estado: ${response.status}`);
+          }
+          return response.text();
+        })
+        .then(responseData => {
+          if (responseData === "Exito") {
+            const index = datosDB.findIndex((objeto) => objeto.id === this.IdEditar);
+            if (index !== -1) {
+              datosDB[index].nombre = datos.nombre;
+              datosDB[index].apellido = datos.apellido;
+              datosDB[index].edad = datos.edad;
+              datosDB[index].equipo = datos.equipo;
+              datosDB[index].posicion = datos.posicion;
+              datosDB[index].cantidadGoles = datos.cantidadGoles;
+              datosDB[index].titulo = datos.titulo;
+              datosDB[index].facultad = datos.facultad;
+              datosDB[index].añoGraduacion = datos.añoGraduacion;
+
+              localStorage.setItem("misDatos", JSON.stringify(datosDB));
+              ocultarSpinner();
+              this.ocultarFormulario();
+              this._tabla.actualizarTabla(datosDB);
+              console.log("Operación exitosa");
+              ocultarSpinner();
+            } else {
+              console.log("No se pudo realizar la operación: No se encontró el objeto en datosDB");
+              alert("Error");
+            }
+          } else {
+            console.log("No se pudo realizar la operación");
+            alert("Error");
+          }
+        })
+        .catch(error => {
+          ocultarSpinner();
+          this.ocultarFormulario();
+          console.error(error);
+          alert("No se pudo realizar la operación.");
+        });        
+    }
+    
+    
+    validarDatos(datos) {
+      const errores = [];
+    
+      if (this.tipoSeleccionado === Futbolista) {
+        if (isNaN(datos.cantidadGoles) || datos.cantidadGoles < 0) {
+          errores.push("La cantidad de goles debe ser un número mayor o igual a 0.");
+        }
+      } else if (this.tipoSeleccionado === Profesional) {
+        if (isNaN(datos.añoGraduacion) || datos.añoGraduacion < 1950) {
+          errores.push("El año de graduación debe ser un número mayor a 1950.");
+        }
+      }
+    
+      return errores;
+    }
     
     procesarFormulario() {
       if (this.tipoSeleccionado) {
@@ -258,7 +366,12 @@ export default class FormularioDinamico {
           datos[key] = value;
         });
     
-        const clavesEsperadas = ['modelo', 'anoFab', 'velMax', 'cantPue', 'cantRue', 'altMax', 'autonomia'];
+        // Agregar el ID al objeto datos si es una edición
+        if (this.IdEditar != null && this.IdEditar > 0) {
+          datos.id = this.IdEditar;
+        }
+    
+        const clavesEsperadas = ['nombre', 'apellido', 'edad', 'equipo', 'posicion', 'cantidadGoles', 'titulo', 'facultad', 'añoGraduacion'];
         const datosAjustados = {};
         clavesEsperadas.forEach((key) => {
           datosAjustados[key] = datos[key];
@@ -274,10 +387,10 @@ export default class FormularioDinamico {
           this.procesarAlta(datosAjustados, datosDB);
         }
     
-        // Ocultar el formulario
         this.ocultarFormulario();
       }
     }
+    
   
     actualizarLocalStorageYTabla(datosDB) {
       // Actualizar la base de datos local
